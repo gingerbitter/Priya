@@ -1,0 +1,136 @@
+return[
+"Production",
+"QA",
+"Development"
+]
+
+
+
+if(env.equals("production")) {
+   return ["prod1"]
+}
+else if(env.equals("QA")) {
+   return ["QA1","QA2"]
+}
+else if(env.equals("Development")) {
+    return ["Dev1","Dev2","Dev3"]
+}
+else{
+       return ["select a server from dropdown"]
+}
+
+
+
+f(sub_env.equals("Prod1")) {
+  return ["Prod-server-1","Prod-server-2"]
+}
+if(sub_env.equals("QA1")) {
+  return ["QA1-server-1","QA2-server-2","QA3-server-3"]
+}
+if(sub_env.equals("QA2")) {
+  return ["No servers in this sub env"]
+}
+if(sub_env.equals("Dev1")) {
+  return ["Dev1-server-1","Dev1-server-2","Dev1-server-3"]
+}
+if(sub_env.equals("Dev2")) {
+  return ["Dev1-server-1","Dev1-server-2","Dev1-server-3"]
+}
+if(sub_env.equals("Dev3")) {
+  return ["No serveres"]
+}
+else{
+return ["Select a server from dropdown"]
+}
+
+
+stage('Send email') {
+    def mailRecipients = "nandini.priya@brigosha.com"
+    def useremail="nandini.priya@brigosha.com"
+    def jobName = currentBuild.fullDisplayName
+
+    emailext body: '''Please go to console output of $(BUILD_URL)input to approve or Reject.<br>''',
+        mimeType: 'text/html',
+        subject: "[Jenkins] ${jobName}",
+        to: "${mailRecipients}",
+        replyTo: "${mailRecipients}",
+        recipientProviders: [[$class: 'CulpritsRecipientProvider']]
+        
+        try {
+          userInput=input submitter:'Nandini' , message:'Do you approve?'
+} catch (org.jenkinsci.plugins.workflow.steps.FlowInterruptedException e) {
+  cause=e.cause.get(0)
+  echo "Aborted by" + cause.getUser().toString()
+       userAborted=true
+     echo "SYSTEM aborted, but looks like timeout period didn't complete.Aborting."
+}
+if (userAborted) {
+    cureentBuild.result='ABORTED'
+} else {
+    echo "Testing"
+}
+}
+ stage('Distribution')
+ {
+     parallel 'Test':
+     {
+         echo "Testing"
+     },
+     'preProd':
+     {
+         echo "preProd"
+
+     }
+}
+ stage ("Finishline")
+ {
+     echo "Successfully completed"
+ }
+}
+
+
+pipeline {
+    agent any
+
+    stages {
+        stage('Hello') {
+            steps {
+                script {
+                    echo 'Hello World'
+                    emailext attachLog: true, body: 'This is the email text', subject: 'This is the email text', to: '
+                    approved = input message: 'Deploy to Production?', ok: 'Yes', submitter: 'AllowedADGroupName'
+                    if (approved) {
+                        withCredentials([usernamePassword(credentialsId: 'privilegedCreds', usernameVariable: 'USER', passwordVariable: 'PASS')]) {
+
+                        }
+
+                    }
+                }
+            }
+        }
+        stage('Deploy to Production') {
+            when {
+                expression { params.DEPLOY_TO_PRODUCTION == 'Yes' }
+            }
+            steps {
+                echo 'Deploying to Production...'
+            }
+        }
+        stage('Deploy To Dev') {
+            when {
+                expression { params.DEPLOY_TO_DEV == 'Yes1' }
+            }
+            steps {
+                echo 'Deploying to Dev...'
+            }
+        }
+        stage('Deploy To QA') {
+            when {
+                expression { params.DEPLOY_TO_QA == 'Yes2' }
+            }
+            steps {
+                echo 'Deploying to QA..'
+            }
+        }
+    }
+}
